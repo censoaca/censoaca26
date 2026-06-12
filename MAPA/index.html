@@ -13,8 +13,6 @@
         <link rel="stylesheet" href="css/fontawesome-all.min.css">
         <link rel="stylesheet" href="css/MarkerCluster.css">
         <link rel="stylesheet" href="css/MarkerCluster.Default.css">
-        <link rel="stylesheet" href="css/filter.css">
-<link rel="stylesheet" href="css/nouislider.min.css">
         <link rel="stylesheet" href="css/leaflet.photon.css">
         <style>
         html, body, #map {
@@ -42,14 +40,11 @@
         <script src="js/labels.js"></script>
         <script src="js/leaflet.photon.js"></script>
         <script src="js/leaflet.markercluster.js"></script>
-        <script src="js/tailDT.js"></script>
-<script src="js/nouislider.min.js"></script>
-<script src="js/wNumb.js"></script>
         <script src="data/PUNTOSMAPA_2.js"></script>
         <script>
         var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
-        }).fitBounds([[16.83388249993623,-99.96950077475292],[16.92816920250545,-99.7801592244545]]);
+        }).fitBounds([[16.841162840572505,-100.0250862113362],[16.935445907628683,-99.83574466103778]]);
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
@@ -414,536 +409,44 @@
         });
         lay.addTo(map);
         setBounds();
-        var mapDiv = document.getElementById('map');
-        var row = document.createElement('div');
-        row.className="row";
-        row.id="all";
-        row.style.height = "100%";
-        var col1 = document.createElement('div');
-        col1.className="col9";
-        col1.id = "mapWindow";
-        col1.style.height = "99%";
-        col1.style.width = "80%";
-        col1.style.display = "inline-block";
-        var col2 = document.createElement('div');
-        col2.className="col3";
-        col2.id = "menu";
-        col2.style.display = "inline-block";
-        mapDiv.parentNode.insertBefore(row, mapDiv);
-        document.getElementById("all").appendChild(col1);
-        document.getElementById("all").appendChild(col2);
-        col1.appendChild(mapDiv)
-        var Filters = {"BITACORAV.CUADRILLA": "str","BITACORAV.Colonia_Plan": "str","today": "str"};
-        function filterFunc() {
-          map.eachLayer(function(lyr){
-          if ("options" in lyr && "dataVar" in lyr["options"]){
-            features = this[lyr["options"]["dataVar"]].features.slice(0);
-            try{
-              for (key in Filters){
-                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
-                if (Filters[key] == "str" || Filters[key] == "bool"){
-                  var selection = [];
-                  var options = document.getElementById("sel_" + keyS).options
-                  for (var i=0; i < options.length; i++) {
-                    if (options[i].selected) selection.push(options[i].value);
-                  }
-                    try{
-                      if (key in features[0].properties){
-                        for (i = features.length - 1;
-                          i >= 0; --i){
-                          if (selection.indexOf(
-                          features[i].properties[key])<0
-                          && selection.length>0) {
-                          features.splice(i,1);
-                          }
-                        }
-                      }
-                    } catch(err){
-                  }
-                }
-                if (Filters[key] == "int"){
-                  sliderVals =  document.getElementById(
-                    "div_" + keyS).noUiSlider.get();
-                  try{
-                    if (key in features[0].properties){
-                    for (i = features.length - 1; i >= 0; --i){
-                      if (parseInt(features[i].properties[key])
-                          < sliderVals[0]
-                          || parseInt(features[i].properties[key])
-                          > sliderVals[1]){
-                            features.splice(i,1);
-                          }
-                        }
-                      }
-                    } catch(err){
-                    }
-                  }
-                if (Filters[key] == "real"){
-                  sliderVals =  document.getElementById(
-                    "div_" + keyS).noUiSlider.get();
-                  try{
-                    if (key in features[0].properties){
-                    for (i = features.length - 1; i >= 0; --i){
-                      if (features[i].properties[key]
-                          < sliderVals[0]
-                          || features[i].properties[key]
-                          > sliderVals[1]){
-                            features.splice(i,1);
-                          }
-                        }
-                      }
-                    } catch(err){
-                    }
-                  }
-                if (Filters[key] == "date"
-                  || Filters[key] == "datetime"
-                  || Filters[key] == "time"){
-                  try{
-                    if (key in features[0].properties){
-                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
-                      startdate = document.getElementById("dat_" +
-                        HTMLkey + "_date1").value.replace(" ", "T");
-                      enddate = document.getElementById("dat_" +
-                        HTMLkey + "_date2").value.replace(" ", "T");
-                      for (i = features.length - 1; i >= 0; --i){
-                        if (features[i].properties[key] < startdate
-                          || features[i].properties[key] > enddate){
-                          features.splice(i,1);
-                        }
-                      }
-                    }
-                  } catch(err){
-                  }
-                }
-              }
-            } catch(err){
-            }
-          this[lyr["options"]["layerName"]].clearLayers();
-          this[lyr["options"]["layerName"]].addData(features);
-          }
-          })
+		// --- INTERRUPTOR DINÁMICO DE CLUSTER (UNA SOLA CAPA) ---
+var botonCluster = L.control({position: 'topright'});
+
+botonCluster.onAdd = function (map) {
+    var div = L.DomUtil.create('div', 'info legend');
+    div.style.padding = '8px 12px';
+    div.style.background = 'white';
+    div.style.border = '2px solid rgba(0,0,0,0.2)';
+    div.style.borderRadius = '5px';
+    div.style.cursor = 'pointer';
+    div.style.fontFamily = 'Arial, sans-serif';
+    div.style.fontSize = '12px';
+    div.innerHTML = '<label style="display: flex; align-items: center; gap: 5px; margin: 0;"><input type="checkbox" id="chkCluster" checked> <b>VER TODOS LOS PUNTOS (Cluster)</b></label>';
+    return div;
+};
+
+botonCluster.addTo(map);
+
+// Control del interruptor en tiempo real
+document.getElementById('chkCluster').addEventListener('change', function(e) {
+    // Usamos tus variables reales identificadas en el código
+    var capaPuntos = layer_PUNTOSMAPA_2; 
+    var clusterGroup = cluster_PUNTOSMAPA_2; 
+
+    if (!e.target.checked) {
+        // Si se desmarca: se quita el cluster y se dibujan todos los puntos sueltos
+        if (map.hasLayer(clusterGroup)) {
+            map.removeLayer(clusterGroup);
         }
-            document.getElementById("menu").appendChild(
-                document.createElement("div"));
-            var div_BITACORAVCUADRILLA = document.createElement('div');
-            div_BITACORAVCUADRILLA.id = "div_BITACORAVCUADRILLA";
-            div_BITACORAVCUADRILLA.className= "filterselect";
-            document.getElementById("menu").appendChild(div_BITACORAVCUADRILLA);
-            sel_BITACORAVCUADRILLA = document.createElement('select');
-            sel_BITACORAVCUADRILLA.multiple = true;
-            sel_BITACORAVCUADRILLA.size = 10;
-            sel_BITACORAVCUADRILLA.id = "sel_BITACORAVCUADRILLA";
-            var BITACORAVCUADRILLA_options_str = "<option value='' unselected></option>";
-            sel_BITACORAVCUADRILLA.onchange = function(){filterFunc()};
-            BITACORAVCUADRILLA_options_str  += '<option value="ANA">ANA</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="BERENICE">BERENICE</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="DIANA">DIANA</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="GABRIEL">GABRIEL</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="GERARDO">GERARDO</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="LILIANA">LILIANA</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="NATIVIDAD">NATIVIDAD</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="NESTOR">NESTOR</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="PAUL">PAUL</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="REYNALDO">REYNALDO</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="SAUL">SAUL</option>';
-            BITACORAVCUADRILLA_options_str  += '<option value="STEPHANY">STEPHANY</option>';
-            sel_BITACORAVCUADRILLA.innerHTML = BITACORAVCUADRILLA_options_str;
-            div_BITACORAVCUADRILLA.appendChild(sel_BITACORAVCUADRILLA);
-            var lab_BITACORAVCUADRILLA = document.createElement('div');
-            lab_BITACORAVCUADRILLA.innerHTML = 'BITACORAV.CUADRILLA';
-            lab_BITACORAVCUADRILLA.className = 'filterlabel';
-            div_BITACORAVCUADRILLA.appendChild(lab_BITACORAVCUADRILLA);
-            var reset_BITACORAVCUADRILLA = document.createElement('div');
-            reset_BITACORAVCUADRILLA.innerHTML = 'clear filter';
-            reset_BITACORAVCUADRILLA.className = 'filterlabel';
-            reset_BITACORAVCUADRILLA.onclick = function() {
-                var options = document.getElementById("sel_BITACORAVCUADRILLA").options;
-                for (var i=0; i < options.length; i++) {
-                    options[i].selected = false;
-                }
-                filterFunc();
-            };
-            div_BITACORAVCUADRILLA.appendChild(reset_BITACORAVCUADRILLA);
-            document.getElementById("menu").appendChild(
-                document.createElement("div"));
-            var div_BITACORAVColonia_Plan = document.createElement('div');
-            div_BITACORAVColonia_Plan.id = "div_BITACORAVColonia_Plan";
-            div_BITACORAVColonia_Plan.className= "filterselect";
-            document.getElementById("menu").appendChild(div_BITACORAVColonia_Plan);
-            sel_BITACORAVColonia_Plan = document.createElement('select');
-            sel_BITACORAVColonia_Plan.multiple = true;
-            sel_BITACORAVColonia_Plan.size = 10;
-            sel_BITACORAVColonia_Plan.id = "sel_BITACORAVColonia_Plan";
-            var BITACORAVColonia_Plan_options_str = "<option value='' unselected></option>";
-            sel_BITACORAVColonia_Plan.onchange = function(){filterFunc()};
-            BITACORAVColonia_Plan_options_str  += '<option value="NULL">NULL</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value=" De Los americanos"> De Los americanos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="5 de mayo">5 de mayo</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="ARROYO SECO">ARROYO SECO</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Abeto">Abeto</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Abran castrejon">Abran castrejon</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Adolfo lopez">Adolfo lopez</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Adrian castrejon">Adrian castrejon</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Adrian castrejon ">Adrian castrejon </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Aguas blancas">Aguas blancas</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Aguas blancas ">Aguas blancas </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Alfredo cisnero">Alfredo cisnero</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Alfredo cisnero ">Alfredo cisnero </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Alianza popular">Alianza popular</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Alianza popular ">Alianza popular </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Almendro">Almendro</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Almendros">Almendros</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Almendros ">Almendros </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Ampliaci�n los mangos">Ampliaci�n los mangos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="And tabachines">And tabachines</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Andador">Andador</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Andador ">Andador </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Apolonio castillo">Apolonio castillo</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Apolonio castillo ">Apolonio castillo </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Arboleda">Arboleda</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Arboleda ">Arboleda </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Arroll� seco">Arroll� seco</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Arroll� seco ">Arroll� seco </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Av Adolfo Lopez Mateo">Av Adolfo Lopez Mateo</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Av ni�os h�roes">Av ni�os h�roes</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Av ni�os h�roes ">Av ni�os h�roes </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Av,llano largo">Av,llano largo</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Av,llano largo ">Av,llano largo </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Av.colosio">Av.colosio</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Av.colosio ">Av.colosio </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Avenida picacho">Avenida picacho</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="BARRA VIEJA">BARRA VIEJA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="BLVD DE LAS NACIONES">BLVD DE LAS NACIONES</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="BONFIL">BONFIL</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Bocamar">Bocamar</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Bocamar ">Bocamar </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Buenavista">Buenavista</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Buganbilia">Buganbilia</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Buganvilia">Buganvilia</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Buganvilia ">Buganvilia </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="C.4">C.4</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="C.8">C.8</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="C.8 ">C.8 </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="C7">C7</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="CALZ. PIE DE LA CUESTA">CALZ. PIE DE LA CUESTA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="CARR. CAYACO">CARR. CAYACO</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="COL. JARDIN AZTECA">COL. JARDIN AZTECA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="COL. JARDIN MANGOS">COL. JARDIN MANGOS</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="COL. JARDIN PALMAS">COL. JARDIN PALMAS</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="CONDESA">CONDESA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="COSTA AZUL">COSTA AZUL</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="COSTERA LAS PALMAS">COSTERA LAS PALMAS</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="COSTERA VIEJA">COSTERA VIEJA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Caoba">Caoba</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Carretera cayaco">Carretera cayaco</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Carretera cayaco ">Carretera cayaco </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cayaco">Cayaco</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cayaco ">Cayaco </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Chinameca">Chinameca</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Chinameca ">Chinameca </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Col centro">Col centro</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Col centro ">Col centro </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Col pri">Col pri</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Col.Cuauht�moc parte alta">Col.Cuauht�moc parte alta</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Colima blanca">Colima blanca</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Colima blanca ">Colima blanca </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Colosio">Colosio</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Colosio ">Colosio </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Colosio granjas">Colosio granjas</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Colosio granjas ">Colosio granjas </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio chichonal">Condominio chichonal</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio chichonal ">Condominio chichonal </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio libra">Condominio libra</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio luna">Condominio luna</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio mercurio">Condominio mercurio</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio mercurio ">Condominio mercurio </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio polar">Condominio polar</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Condominio susena setsa">Condominio susena setsa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cordona">Cordona</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Costa azul">Costa azul</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cto 30">Cto 30</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cto7">Cto7</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cto8">Cto8</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cuahtemoc parte alta">Cuahtemoc parte alta</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cumbres">Cumbres</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cumbres ">Cumbres </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cumbres de Figueroa">Cumbres de Figueroa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Cumbres de Figueroa ">Cumbres de Figueroa </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="DIAMANTE">DIAMANTE</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="DOma hermosa">DOma hermosa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="De Los americanos">De Los americanos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="De la paz">De la paz</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="De las torres">De las torres</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="De las torres ">De las torres </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="De los americanos">De los americanos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="De los americanos ">De los americanos </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Doma hermosa">Doma hermosa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Doma hermosa ">Doma hermosa </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Drago">Drago</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Dragos">Dragos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Dragos ">Dragos </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Durazno">Durazno</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Durazno ">Durazno </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Ejilatarios">Ejilatarios</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Ejilatorios">Ejilatorios</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="El Roble">El Roble</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="El Roble ">El Roble </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="El morro">El morro</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="El pino">El pino</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="El pino ">El pino </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="El quemado (casitas)">El quemado (casitas)</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="El roble">El roble</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Eloy polanco">Eloy polanco</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Etapa 24">Etapa 24</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Etapa 26">Etapa 26</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Etapa 41">Etapa 41</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Etapa 5">Etapa 5</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Etapa 57">Etapa 57</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Etapa X">Etapa X</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Etapa x">Etapa x</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="FOVISTE">FOVISTE</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="FRANCISCO VILLA">FRANCISCO VILLA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="FUERZA AEREA">FUERZA AEREA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Farall�n">Farall�n</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Farall�n ">Farall�n </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fc. ">Fc. </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fco villa">Fco villa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Felix liera">Felix liera</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Felix liera ">Felix liera </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Felix ligera">Felix ligera</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fidel">Fidel</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fidel ">Fidel </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fidel Vel�zquez">Fidel Vel�zquez</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fidel Vel�zquez ">Fidel Vel�zquez </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fidel velazque,">Fidel velazque,</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fidel velazquez">Fidel velazquez</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Filberto">Filberto</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Floresta">Floresta</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Floresta ">Floresta </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fraccionamiento las playas">Fraccionamiento las playas</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fraccionamiento las playas ">Fraccionamiento las playas </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fraccionamiento piscis">Fraccionamiento piscis</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Fraccionamiento villa para�so 1">Fraccionamiento villa para�so 1</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="GARITA">GARITA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Graciano">Graciano</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Gran via coloso">Gran via coloso</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Gran via coloso ">Gran via coloso </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Granjas Colosio">Granjas Colosio</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Granjas Colosio ">Granjas Colosio </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Granjas del marques">Granjas del marques</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Granjas del marques ">Granjas del marques </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Granjas del marquez">Granjas del marquez</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Granjas del marquez ">Granjas del marquez </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="HOGAR MODERNO">HOGAR MODERNO</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="HORNOS">HORNOS</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Hogar moderno">Hogar moderno</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="ICACOS">ICACOS</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Ignacio zaragoza">Ignacio zaragoza</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Izazaga">Izazaga</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Izazaga ">Izazaga </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Jacarand�s">Jacarand�s</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Jacarand�s ">Jacarand�s </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Jacarand�s que">Jacarand�s que</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Jacarand�s que ">Jacarand�s que </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Jard�n de los amates">Jard�n de los amates</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Jard�n de los amates ">Jard�n de los amates </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Juan Alvares">Juan Alvares</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Juan Alvares ">Juan Alvares </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Juan S andraca">Juan S andraca</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="LA ANTORCHA">LA ANTORCHA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="LA POZA">LA POZA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="La colina blanca">La colina blanca</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="La laja">La laja</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="La laja ">La laja </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="La quebrada">La quebrada</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="La sabana">La sabana</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="La sabana ">La sabana </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Las brisas">Las brisas</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Las torres ">Las torres </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Laurel">Laurel</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Laurel ">Laurel </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Libertad">Libertad</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Libertad ">Libertad </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Lomas de Chapultepec">Lomas de Chapultepec</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Lomas de Chapultepec ">Lomas de Chapultepec </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los americanos ">Los americanos </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los argentinos">Los argentinos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los argentinos ">Los argentinos </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los brasile�o">Los brasile�o</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los brasile�o ">Los brasile�o </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los canadienses">Los canadienses</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los dragos">Los dragos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los dragos ">Los dragos </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los estados de Am�rica">Los estados de Am�rica</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los estados de Am�rica ">Los estados de Am�rica </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los europeos">Los europeos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los europeos ">Los europeos </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los �rganos">Los �rganos</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Los �rganos ">Los �rganos </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="L�zaro cardenas">L�zaro cardenas</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="MARROQUIN">MARROQUIN</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="MIRAMAR">MIRAMAR</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="MIRAMAR AV. UNIVERSIDAD">MIRAMAR AV. UNIVERSIDAD</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="MORELOS">MORELOS</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="MOZIMBA">MOZIMBA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Magallanes">Magallanes</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Magallanes ">Magallanes </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Mario moya">Mario moya</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Marquezita">Marquezita</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Monte cervino">Monte cervino</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Monte rosa">Monte rosa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="NUEVA ERA">NUEVA ERA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Narciso Mendoza">Narciso Mendoza</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Narciso Mendoza ">Narciso Mendoza </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Ni�o perdido">Ni�o perdido</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Nueva era">Nueva era</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Nuevo puerto M�rquez">Nuevo puerto M�rquez</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Nuevo puerto M�rquez ">Nuevo puerto M�rquez </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Oriente">Oriente</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="PALMA SOLA">PALMA SOLA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="POB. PIE DE LA CUESTA">POB. PIE DE LA CUESTA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="POB. SAN ISIDRO">POB. SAN ISIDRO</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="PROGRESO">PROGRESO</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Palma fortune">Palma fortune</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Parque del veladero">Parque del veladero</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Parque del veladero ">Parque del veladero </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Pepsi">Pepsi</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Postal">Postal</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Praderas de costa azul">Praderas de costa azul</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Praderas de costa azul ">Praderas de costa azul </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Principal">Principal</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Principal ">Principal </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Progreso">Progreso</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Progreso ">Progreso </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Puente tuncingo">Puente tuncingo</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Puente tuncingo ">Puente tuncingo </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Puerto marqu�s">Puerto marqu�s</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Puerto marqu�s ">Puerto marqu�s </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Puesta del sol">Puesta del sol</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="RENACIMIENTO">RENACIMIENTO</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="RUIZ CORTINEZ">RUIZ CORTINEZ</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Real hacienda">Real hacienda</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Real hacienda ">Real hacienda </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Reforma agraria">Reforma agraria</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Reforma agraria ">Reforma agraria </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Renacimiento">Renacimiento</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Rio frio">Rio frio</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Rio yaki">Rio yaki</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Rio yaki ">Rio yaki </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Rodolfo neri">Rodolfo neri</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Rosales">Rosales</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Ruiz cortinez">Ruiz cortinez</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Ruiz cortinez ">Ruiz cortinez </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="R�o atoyac">R�o atoyac</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="R�o grijalva">R�o grijalva</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="R�o shusiate">R�o shusiate</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="R�o yaqui">R�o yaqui</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="SAN AGUSTIN SUR">SAN AGUSTIN SUR</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="SANTA CECILIA">SANTA CECILIA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="SANTA CRUZ">SANTA CRUZ</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="SECTOR 6">SECTOR 6</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sabana">Sabana</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sabana ">Sabana </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Secsa">Secsa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Secsa manzanilla ">Secsa manzanilla </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sector6">Sector6</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sendero de monje">Sendero de monje</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sinai">Sinai</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sina�">Sina�</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sina� ">Sina� </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sur">Sur</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sur ">Sur </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Sur 17">Sur 17</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Susena Canc�n">Susena Canc�n</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Susena Canc�n ">Susena Canc�n </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="TRES PALOS">TRES PALOS</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="TUNCINGO">TUNCINGO</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Tanque">Tanque</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Tanque ">Tanque </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Tecnologico">Tecnologico</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Terramar">Terramar</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Unidos por guerrero">Unidos por guerrero</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Unidos por guerrero ">Unidos por guerrero </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="VISTA ALEGRE">VISTA ALEGRE</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Valle">Valle</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Vicente Guerrero">Vicente Guerrero</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Vicente Guerrero ">Vicente Guerrero </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Vicente Guerrero 200">Vicente Guerrero 200</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Vista brisa">Vista brisa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Vista brisa ">Vista brisa </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Vista hermosa">Vista hermosa</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Vista hermosa ">Vista hermosa </option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Volc�n malinche">Volc�n malinche</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Volc�n pinacate">Volc�n pinacate</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="ZAPATA">ZAPATA</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="Zapata">Zapata</option>';
-            BITACORAVColonia_Plan_options_str  += '<option value="cayaco">cayaco</option>';
-            sel_BITACORAVColonia_Plan.innerHTML = BITACORAVColonia_Plan_options_str;
-            div_BITACORAVColonia_Plan.appendChild(sel_BITACORAVColonia_Plan);
-            var lab_BITACORAVColonia_Plan = document.createElement('div');
-            lab_BITACORAVColonia_Plan.innerHTML = 'BITACORAV.Colonia_Plan';
-            lab_BITACORAVColonia_Plan.className = 'filterlabel';
-            div_BITACORAVColonia_Plan.appendChild(lab_BITACORAVColonia_Plan);
-            var reset_BITACORAVColonia_Plan = document.createElement('div');
-            reset_BITACORAVColonia_Plan.innerHTML = 'clear filter';
-            reset_BITACORAVColonia_Plan.className = 'filterlabel';
-            reset_BITACORAVColonia_Plan.onclick = function() {
-                var options = document.getElementById("sel_BITACORAVColonia_Plan").options;
-                for (var i=0; i < options.length; i++) {
-                    options[i].selected = false;
-                }
-                filterFunc();
-            };
-            div_BITACORAVColonia_Plan.appendChild(reset_BITACORAVColonia_Plan);
-            document.getElementById("menu").appendChild(
-                document.createElement("div"));
-            var div_today = document.createElement('div');
-            div_today.id = "div_today";
-            div_today.className= "filterselect";
-            document.getElementById("menu").appendChild(div_today);
-            sel_today = document.createElement('select');
-            sel_today.multiple = true;
-            sel_today.size = 10;
-            sel_today.id = "sel_today";
-            var today_options_str = "<option value='' unselected></option>";
-            sel_today.onchange = function(){filterFunc()};
-            today_options_str  += '<option value="01/06/2026">01/06/2026</option>';
-            today_options_str  += '<option value="03/06/2026">03/06/2026</option>';
-            today_options_str  += '<option value="04/06/2026">04/06/2026</option>';
-            today_options_str  += '<option value="05/06/2026">05/06/2026</option>';
-            today_options_str  += '<option value="06/06/2026">06/06/2026</option>';
-            today_options_str  += '<option value="08/06/2026">08/06/2026</option>';
-            today_options_str  += '<option value="09/06/2026">09/06/2026</option>';
-            today_options_str  += '<option value="10/06/2026">10/06/2026</option>';
-            today_options_str  += '<option value="19/05/2026">19/05/2026</option>';
-            today_options_str  += '<option value="20/05/2026">20/05/2026</option>';
-            today_options_str  += '<option value="2026-06-11">2026-06-11</option>';
-            today_options_str  += '<option value="21/05/2026">21/05/2026</option>';
-            today_options_str  += '<option value="22/05/2026">22/05/2026</option>';
-            today_options_str  += '<option value="23/05/2026">23/05/2026</option>';
-            today_options_str  += '<option value="25/05/2026">25/05/2026</option>';
-            today_options_str  += '<option value="26/05/2026">26/05/2026</option>';
-            today_options_str  += '<option value="27/05/2026">27/05/2026</option>';
-            today_options_str  += '<option value="28/05/2026">28/05/2026</option>';
-            today_options_str  += '<option value="29/05/2026">29/05/2026</option>';
-            today_options_str  += '<option value="30/05/2026">30/05/2026</option>';
-            sel_today.innerHTML = today_options_str;
-            div_today.appendChild(sel_today);
-            var lab_today = document.createElement('div');
-            lab_today.innerHTML = 'today';
-            lab_today.className = 'filterlabel';
-            div_today.appendChild(lab_today);
-            var reset_today = document.createElement('div');
-            reset_today.innerHTML = 'clear filter';
-            reset_today.className = 'filterlabel';
-            reset_today.onclick = function() {
-                var options = document.getElementById("sel_today").options;
-                for (var i=0; i < options.length; i++) {
-                    options[i].selected = false;
-                }
-                filterFunc();
-            };
-            div_today.appendChild(reset_today);
+        map.addLayer(capaPuntos);
+    } else {
+        // Si se marca: se quitan los puntos sueltos y regresa el cluster protector
+        if (map.hasLayer(capaPuntos)) {
+            map.removeLayer(capaPuntos);
+        }
+        map.addLayer(clusterGroup);
+    }
+});
         </script>        
     </body>
 </html>
